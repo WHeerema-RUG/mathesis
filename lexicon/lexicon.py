@@ -139,7 +139,7 @@ def generate_word(onsets, nuclei, codas, thres, d):
     return word
 
 
-def generate_lexicon(phonology, feats, count):
+def generate_lexicon(phonology, feats, count, particles):
     """Separate function for lexicon generation to enhance code readability"""
     # Calculate the probability of it being a noun
     all_nouns = sum(feats["noun"].values())
@@ -175,7 +175,12 @@ def generate_lexicon(phonology, feats, count):
         for _ in range(s+1):
             codas.append(phoneme)
     # Iterate to generate words
-    lexicon = {}
+    lexicon = {"grammar": {}, "noun": [], "verb": []}
+    # First the grammar
+    for particle in particles:
+        morpheme = generate_syllable(onsets, nuclei, codas, tact="CV")
+        lexicon["grammar"][morpheme] = particle
+    # Then the words
     for _ in range(count):
         # Determine noun or verb
         if random.random() < nounprob:
@@ -183,8 +188,8 @@ def generate_lexicon(phonology, feats, count):
         else:
             word_type = "verb"
         # Generate a word, finally!
-        word = generate_word(onsets, nuclei, codas, thresholds[word_type], 3)
-        lexicon[word] = word_type
+        word = generate_word(codas, nuclei, codas, thresholds[word_type], 3)
+        lexicon[word_type].append(word)
     # Return finished lexicon
     return lexicon
 
@@ -215,7 +220,8 @@ def main(args):
         phonology = json.load(fp)
     print("Imported phonology from", args.infile)
     # Generate and export lexicon
-    lexicon = generate_lexicon(phonology, word_lens, args.wordcount)
+    lexicon = generate_lexicon(phonology, word_lens, args.wordcount,
+                               feat_occs.keys())
     with open(args.outfile, "w", encoding="utf-8") as fl:
         json.dump(lexicon, fl, ensure_ascii=False, indent=4)
     print("Exported lexicon to", args.outfile)
