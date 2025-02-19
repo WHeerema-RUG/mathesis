@@ -134,8 +134,19 @@ def generate_word(onsets, nuclei, codas, thres, d):
             break
     # Generate syllables for the word
     word = ""
-    for _ in range(syl_count):
-        word = word + generate_syllable(onsets, nuclei, codas)
+    for i in range(syl_count):
+        if i == 0:
+            # If initial syllable, allow zero onset
+            word = word + generate_syllable(onsets, nuclei, codas,
+                                            tact="cVc")
+        else:
+            # If non-initial syllable, require onset
+            # Mostly done to avoid awkward vowel clustering, I'm aware
+            # that having multiple vowels back-to-back is naturalistic
+            # (such as in Georgian, if I recall correctly)
+            # TODO: Properly determine legal vowel clusters
+            word = word + generate_syllable(onsets, nuclei, codas,
+                                            tact="CVc")
     return word
 
 
@@ -175,7 +186,7 @@ def generate_lexicon(phonology, feats, count, particles):
         for _ in range(s+1):
             codas.append(phoneme)
     # Iterate to generate words
-    lexicon = {"grammar": {}, "noun": [], "verb": []}
+    lexicon = {"grammar": {}, "noun": [], "verb": {}}
     # First the grammar
     for particle in particles:
         morpheme = generate_syllable(onsets, nuclei, codas, tact="CV")
@@ -184,12 +195,14 @@ def generate_lexicon(phonology, feats, count, particles):
     for _ in range(count):
         # Determine noun or verb
         if random.random() < nounprob:
-            word_type = "noun"
+            # If noun, simply append to list
+            word = generate_word(codas, nuclei, codas, thresholds["noun"], 3)
+            lexicon["noun"].append(word)
         else:
-            word_type = "verb"
-        # Generate a word, finally!
-        word = generate_word(codas, nuclei, codas, thresholds[word_type], 3)
-        lexicon[word_type].append(word)
+            # If verb, randomly determine transitivity
+            # TODO: Base this on Brown corpus distribution
+            word = generate_word(codas, nuclei, codas, thresholds["verb"], 3)
+            lexicon["verb"][word] = random.randint(0, 2)
     # Return finished lexicon
     return lexicon
 
