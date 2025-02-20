@@ -6,6 +6,7 @@
 
 import argparse
 import json
+import re
 
 
 def create_args():
@@ -16,6 +17,10 @@ def create_args():
                         help="Get grammar from JSON file")
     parser.add_argument("lexicon", type=str,
                         help="Get lexicon from JSON file")
+    parser.add_argument("-s", "--orthography", type=str,
+                        default="none",
+                        help="Orthography for respelling"
+                        "(default none)")
     parser.add_argument("-o", "--outfile", type=str,
                         default="none",
                         help="Export sentences to file"
@@ -24,7 +29,14 @@ def create_args():
     return args
 
 
-def render_sent(protosent, grammar, particles):
+def ortho_transform(word, orthography):
+    """Respell a word in a given orthography"""
+    for key, value in orthography.items():
+        word = re.sub(key, value, word)
+    return word
+
+
+def render_sent(protosent, grammar, particles, orthography):
     """Render a single sentence according to a grammar"""
     # Initialize output sentence
     outsent = []
@@ -45,8 +57,8 @@ def render_sent(protosent, grammar, particles):
             # If agglutinative, join everything together
             word = gloss[0] + "".join([particles[valid]
                                        for valid in marked])
-        # Add to sentence
-        outsent.append(word)
+        # Respell and add to sentence
+        outsent.append(ortho_transform(word, orthography))
     # Return capitalized sentence with a period at the end
     return " ".join(outsent).capitalize() + "."
 
@@ -59,13 +71,21 @@ def main(args):
     with open(args.grammar, "r") as fg:
         grammar = json.load(fg)
     print("Imported grammar from", args.grammar)
+    if args.orthography != "none":
+        # If orthography specified, load it
+        with open(args.orthography, "r") as fs:
+            orthography = json.load(fs)
+        print("Imported orthography from", args.orthography)
+    else:
+        # If not, simply treat orthography as empty
+        orthography = {}
     # Process lexicon to only get the particles
     with open(args.lexicon, "r") as fl:
         particles = {value: key for key, value
                      in json.load(fl)["grammar"].items()}
     print("Imported particles from", args.lexicon)
     # Iterate through all sentences
-    parsed = [render_sent(sent, grammar, particles)
+    parsed = [render_sent(sent, grammar, particles, orthography)
               for sent in sents]
     # Output to text file
     if args.outfile == "none":
