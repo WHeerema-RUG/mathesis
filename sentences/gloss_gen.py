@@ -64,10 +64,10 @@ def main(args):
     # Import all necessary files
     with open(args.lexicon, "r") as fl:
         lexicon = json.load(fl)
-        print("Imported lexicon from", args.lexicon)
+    print("Imported lexicon from", args.lexicon)
     with open(args.feats, "r") as ff:
         feat_occs = json.load(ff)
-        print("Imported features from", args.feats)
+    print("Imported features from", args.feats)
     # Set options and thresholds
     options = {"nouns": {"definite": ["definite", "indefinite"],
                          "plural": ["plural", "singular"]},

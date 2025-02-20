@@ -1,0 +1,11 @@
+{
+    "fusional": false,
+    "marking": {
+        "definite": true,
+        "indefinite": true,
+        "past": true,
+        "non-past": true,
+        "singular": true,
+        "plural": true
+    }
+}
