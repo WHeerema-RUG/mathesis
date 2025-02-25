@@ -7,6 +7,7 @@
 import argparse
 # Credit to soaxelbrooke et al. on GitHub
 from bpe import Encoder
+import re
 from scipy.stats import entropy
 
 
@@ -26,13 +27,14 @@ def create_args():
 def bpe_ifier(sents, merges):
     """Do BPE operations for a set of sentences"""
     # Do BPE merges and tokenization
-    bpe = Encoder(merges, pct_bpe=1)
+    bpe = Encoder(merges, pct_bpe=0.9)
     bpe.fit(sents)
     # Pull vocab for Shannon entropy measure
     vocab = bpe.vocabs_to_dict()
-    # Get probabilities for each subword occurring
-    prob_array = [value/vocab["kwargs"]["vocab_size"]
-                  for _, value in vocab["words"]]
+    # Get probabilities for subword occurrence
+    prob_array = [len(re.findall(key, " ".join(sents)))\
+                  /vocab["kwargs"]["vocab_size"]
+                  for key, _ in vocab["byte_pairs"].items()]
     # Do entropy measure
     print("Shannon entropy:", entropy(prob_array))
     # Return tokenized sentences
