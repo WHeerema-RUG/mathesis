@@ -13,6 +13,7 @@ from torch.nn import Embedding, Parameter, Linear, \
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+from tqdm import tqdm
 
 # Set to CPU; efficient model is not necessary
 device = torch.device("cpu")
@@ -74,7 +75,7 @@ def train_epoch(dataloader, optimizer, criterion, embedding,
     # Initialize loss
     total_loss = 0
     # Iterate over each batch
-    for batch, attn_mask in dataloader:
+    for batch, attn_mask in tqdm(dataloader):
         # Send data to device
         batch, attn_mask = batch.to(device), attn_mask.to(device)
         # Let transformer work its magic
