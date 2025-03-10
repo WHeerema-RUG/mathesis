@@ -50,8 +50,7 @@ def render_sent(protosent, grammar, particles, orthography):
         # Handle grammar
         if grammar["fusional"]:
             # If fusional, get particle that corresponds to both
-            # TODO: Add fusional grammar to lexicon
-            raise NotImplementedError("Fusional grammar not yet supported")
+            # Expects morpheme in the format of feat&number
             word = gloss[0] + particles["&".join(marked)]
         else:
             # If agglutinative, join everything together

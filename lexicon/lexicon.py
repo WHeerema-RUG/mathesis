@@ -191,6 +191,15 @@ def generate_lexicon(phonology, feats, count, particles):
     for particle in particles:
         morpheme = generate_syllable(onsets, nuclei, codas, tact="CV")
         lexicon["grammar"][morpheme] = particle
+    # Fusional morpheme generation as well
+    # Example fusional description: definite&singular
+    sings = [feat+"&singular" for feat in particles
+             if feat != "singular" and feat != "plural"]
+    plurs = [feat+"&plural" for feat in particles
+             if feat != "singular" and feat != "plural"]
+    for part_combo in [*sings, *plurs]:
+        morpheme = generate_syllable(onsets, nuclei, codas, tact="CV")
+        lexicon["grammar"][morpheme] = part_combo
     # Then the words
     for _ in range(count):
         # Determine noun or verb
