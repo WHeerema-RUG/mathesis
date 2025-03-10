@@ -7,7 +7,11 @@
 import argparse
 # Credit to soaxelbrooke et al. on GitHub
 from bpe import Encoder
+from collections import Counter
+from itertools import chain
 from scipy.stats import entropy
+
+from transformer_eval import transformer_ops
 
 
 def create_args():
@@ -26,17 +30,20 @@ def create_args():
 def bpe_ifier(sents, merges):
     """Do BPE operations for a set of sentences"""
     # Do BPE merges and tokenization
-    bpe = Encoder(merges, pct_bpe=1)
+    bpe = Encoder(merges, pct_bpe=0.9)
     bpe.fit(sents)
-    # Pull vocab for Shannon entropy measure
-    vocab = bpe.vocabs_to_dict()
-    # Get probabilities for each subword occurring
-    prob_array = [value/vocab["kwargs"]["vocab_size"]
-                  for _, value in vocab["words"]]
+    # Get vocab size
+    vocab_size = bpe.vocabs_to_dict()["kwargs"]["vocab_size"]
+    # Get tokenized sentences for Shannon entropy measure
+    returnable = [next(bpe.transform([sent])) for sent in sents]
+    # Get frequency for all types in every sentence
+    dim1_tokens = Counter(list(chain.from_iterable(returnable))).values()
+    # Get probabilities for subword occurrence
+    prob_array = [value/sum(dim1_tokens) for value in dim1_tokens]
     # Do entropy measure
     print("Shannon entropy:", entropy(prob_array))
     # Return tokenized sentences
-    return [bpe.tokenize(sent) for sent in sents]
+    return returnable, vocab_size
 
 
 def main(args):
@@ -44,8 +51,9 @@ def main(args):
     with open(args.infile, "r") as f1:
         sents_raw = [line[:-1] for line in f1.readlines()]
     # Do BPE
-    sents_tok = bpe_ifier(sents_raw, args.merges)
-    # TODO: Do transformer
+    sents_tok, vocab = bpe_ifier(sents_raw, args.merges)
+    # Do transformer from another file
+    transformer_ops(sents_tok, vocab, args.epochs)
 
 
 if __name__ == "__main__":

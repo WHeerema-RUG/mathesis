@@ -163,15 +163,15 @@ def generate_lexicon(phonology, feats, count, particles):
     # Nouns
     n_cache = 0.0
     for pair in sorted(feats["noun"].items(),
-                      key=lambda item: item[1],
-                      reverse=True):
+                       key=lambda item: item[1],
+                       reverse=True):
         n_cache += pair[1] / all_nouns
         thresholds["noun"][pair[0]] = n_cache
     # Verbs
     v_cache = 0.0
     for pair in sorted(feats["verb"].items(),
-                      key=lambda item: item[1],
-                      reverse=True):
+                       key=lambda item: item[1],
+                       reverse=True):
         v_cache += pair[1] / all_verbs
         thresholds["verb"][pair[0]] = v_cache
     # Determine available phonemes
