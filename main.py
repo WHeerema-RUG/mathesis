@@ -94,6 +94,7 @@ def main(args):
                     orthography = json.load(fs)
             # Carry out evaluation with this setup
             batch_eval(sents, grammar, particles, orthography,
+                       merges=args.merges, epochs=args.epochs,
                        path=path+"/data/", export_append=orth_path[:-5],
                        verbose=args.verbose)
     else:
@@ -116,12 +117,14 @@ def main(args):
             grammar["marking"]["plural"] = binary[5]
             # Carry out evaluation with this setup
             batch_eval(sents, grammar, particles, orthography,
+                       merges=args.merges, epochs=args.epochs,
                        path=path+"/data/", export_append=str(i),
                        verbose=args.verbose)
         # Next, invert fusional option, with every marking enabled
         grammar["fusional"] = not grammar["fusional"]
         # Final evaluation with the fusional grammar
         batch_eval(sents, grammar, particles, orthography,
+                   merges=args.merges, epochs=args.epochs,
                    path=path+"/data/", export_append="fusional",
                    verbose=args.verbose)
 
