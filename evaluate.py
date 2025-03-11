@@ -23,6 +23,8 @@ def create_args():
     parser.add_argument("-e", "--epochs", type=int, default=20,
                         help="Amount of epochs to train the transformer for"
                         "(default 20)")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="Output every epoch for the transformer")
     args = parser.parse_args()
     return args
 

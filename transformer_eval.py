@@ -92,7 +92,7 @@ def train_epoch(dataloader, optimizer, criterion, embedding,
     return total_loss / len(dataloader)
 
 
-def transformer_ops(tokenized, vocab, epochs):
+def transformer_ops(tokenized, vocab, epochs, verbose=True):
     """Perform every operation for creating and evaluating a transformer"""
     # Preprocess data to get mask and padded dataset
     pad_token = 0
@@ -107,10 +107,16 @@ def transformer_ops(tokenized, vocab, epochs):
     # Set cross-entropy as the loss criterion
     criterion = CrossEntropyLoss(ignore_index=pad_token)
     # Iterate to get loss; print as both loss and perplexity
-    # The 25 * "=" is just to prettify the output
-    print(25 * "=")
+    # Only print every epoch if verbose; else, only print last epoch result
+    if verbose:
+        # The 25 * "=" is just to prettify the output
+        print(25 * "=")
     for epoch in range(epochs):
         train_loss = train_epoch(dataloader, optimizer, criterion, embedding,
                                  pos_embedding, transformer, fc_out)
-        print("EPOCH", epoch, "\nTrain Loss:", train_loss,
-              "\nPerplexity:", np.exp(train_loss), "\n" + 25 * "=")
+        if verbose:
+            print("EPOCH", epoch, "\nTrain Loss:", train_loss,
+                  "\nPerplexity:", np.exp(train_loss), "\n" + 25 * "=")
+    if not verbose:
+        print("\nTrain Loss:", train_loss,
+              "\nPerplexity:", np.exp(train_loss))
