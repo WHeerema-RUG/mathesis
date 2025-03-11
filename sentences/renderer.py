@@ -29,6 +29,23 @@ def create_args():
     return args
 
 
+def load_data(sents, grammar, lexicon):
+    """Load all the static data for sentence rendering"""
+    # Import files
+    with open(sents, "r") as fs:
+        sents_json = json.load(fs)
+    print("Imported sentences from", sents)
+    with open(grammar, "r") as fg:
+        grammar_json = json.load(fg)
+    print("Imported grammar from", grammar)
+    # Process lexicon to only get the particles
+    with open(lexicon, "r") as fl:
+        particles_json = {value: key for key, value
+                     in json.load(fl)["grammar"].items()}
+    print("Imported particles from", lexicon)
+    return sents_json, grammar_json, particles_json
+
+
 def ortho_transform(word, orthography):
     """Respell a word in a given orthography"""
     for key, value in orthography.items():
@@ -63,13 +80,9 @@ def render_sent(protosent, grammar, particles, orthography):
 
 
 def main(args):
-    # Import files
-    with open(args.infile, "r") as fs:
-        sents = json.load(fs)
-    print("Imported sentences from", args.infile)
-    with open(args.grammar, "r") as fg:
-        grammar = json.load(fg)
-    print("Imported grammar from", args.grammar)
+    # Load all files
+    sents, grammar, particles = load_data(args.infile, args.grammar,
+                                          args.lexicon)
     if args.orthography != "none":
         # If orthography specified, load it
         with open(args.orthography, "r") as fs:
@@ -78,11 +91,6 @@ def main(args):
     else:
         # If not, simply treat orthography as empty
         orthography = {}
-    # Process lexicon to only get the particles
-    with open(args.lexicon, "r") as fl:
-        particles = {value: key for key, value
-                     in json.load(fl)["grammar"].items()}
-    print("Imported particles from", args.lexicon)
     # Iterate through all sentences
     parsed = [render_sent(sent, grammar, particles, orthography)
               for sent in sents]
