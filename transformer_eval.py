@@ -114,9 +114,11 @@ def transformer_ops(tokenized, vocab, epochs, verbose=True):
     for epoch in range(epochs):
         train_loss = train_epoch(dataloader, optimizer, criterion, embedding,
                                  pos_embedding, transformer, fc_out)
+        perplexity = np.exp(train_loss)
         if verbose:
             print("EPOCH", epoch, "\nTrain Loss:", train_loss,
-                  "\nPerplexity:", np.exp(train_loss), "\n" + 25 * "=")
+                  "\nPerplexity:", perplexity, "\n" + 25 * "=")
     if not verbose:
         print("\nTrain Loss:", train_loss,
-              "\nPerplexity:", np.exp(train_loss))
+              "\nPerplexity:", perplexity)
+    return train_loss, perplexity

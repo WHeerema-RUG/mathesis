@@ -9,6 +9,7 @@
 # Import "proper" modules for I/O
 import argparse
 import json
+import pandas as pd
 import os
 import sys
 
@@ -20,21 +21,21 @@ import evaluate as eval
 def create_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("infile", type=str,
-                        help="Get lexicon from file")
-    parser.add_argument("feats", type=str,
-                        help="Import feature probabilities from file")
+                        help="Get gloss sentences from file")
     parser.add_argument("grammar", type=str,
                         default="sentences/agglutinative.json",
                         help="Load grammar for the sentences; serves as a "
                         "template if orthography is specified")
-    parser.add_argument("-o", "--orthography", type=str,
+    parser.add_argument("lexicon", type=str,
+                        help="Get lexicon from file")
+    parser.add_argument("-s", "--orthography", type=str,
                         default="empty",
                         help="Specify a standardized orthography for all "
                         "grammars, which enables grammatical variation"
                         "(default empty)")
-    parser.add_argument("-s", "--sentcap", type=int, default=100,
+    parser.add_argument("-n", "--sentcap", type=int, default=9999999999,
                         help="Cap on the amount of sentences to use"
-                        "(default 100)")
+                        "(default 9999999999)")
     parser.add_argument("-m", "--merges", type=int, default=400,
                         help="Amount of BPE merges to perform"
                         "(default 400)")
@@ -43,6 +44,10 @@ def create_args():
                         "(default 20)")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="Output every epoch for the transformer")
+    parser.add_argument("-o", "--outfile", type=str,
+                        default="results.csv",
+                        help=".csv file to export all results to"
+                        "(default results.csv)")
     args = parser.parse_args()
     return args
 
@@ -58,15 +63,27 @@ def batch_eval(sents, grammar, particles, orthography,
     with open(path + "parse-" + export_append + ".txt", "w") as fo:
         fo.write("\n".join(parsed))
     # Calculate BPE
-    sents_tok, vocab = eval.bpe_ifier(parsed, merges)
+    sents_tok, vocab, entropy = eval.bpe_ifier(parsed, merges)
     # Train transformer
-    eval.transformer_ops(sents_tok, vocab, epochs, verbose=verbose)
+    loss, perplexity = eval.transformer_ops(sents_tok, vocab, epochs,
+                                            verbose=verbose)
+    return {"ID": export_append, "Entropy": entropy, "Loss": loss,
+            "Perplexity": perplexity}
+
+
+def prepare_export(parent, child):
+    """Process child dict for parent dict export"""
+    for key, value in child.items():
+        parent[key].append(value)
 
 
 def main(args):
     # Import files
     sents, grammar, particles = ren.load_data(args.infile, args.grammar,
                                               args.lexicon)
+    # Set sentence cap
+    if len(sents) > args.sentcap:
+        sents = sents[:args.sentcap]
     # Get the program path
     # Credit to neuro and Asclepius on StackOverflow
     path = os.path.dirname(os.path.realpath(sys.argv[0]))
@@ -74,6 +91,7 @@ def main(args):
         os.mkdir(path+"/data")
     except FileExistsError:
         pass
+    df_temp = {"ID": [], "Entropy": [], "Loss": [], "Perplexity": []}
     if args.orthography == "empty":
         # If no orthography specified, do an orthography run
         orths = ["none"]
@@ -89,14 +107,19 @@ def main(args):
             # Load orthography
             if orth_path == "none":
                 orthography = {}
+                export_append = "none"
             else:
                 with open(orth_path, "r") as fs:
                     orthography = json.load(fs)
+                export_append = os.path.basename(orth_path)[:-5]
             # Carry out evaluation with this setup
-            batch_eval(sents, grammar, particles, orthography,
-                       merges=args.merges, epochs=args.epochs,
-                       path=path+"/data/", export_append=orth_path[:-5],
-                       verbose=args.verbose)
+            print("="*25, export_append.upper(), "="*25)
+            out = batch_eval(sents, grammar, particles, orthography,
+                             merges=args.merges, epochs=args.epochs,
+                             path=path+"/data/", export_append=export_append,
+                             verbose=args.verbose)
+            # Append to other results
+            prepare_export(df_temp, out)
     else:
         # If orthography specified, do a morphology run
         with open(args.orthography, "r") as fs:
@@ -116,17 +139,27 @@ def main(args):
             grammar["marking"]["singular"] = binary[4]
             grammar["marking"]["plural"] = binary[5]
             # Carry out evaluation with this setup
-            batch_eval(sents, grammar, particles, orthography,
-                       merges=args.merges, epochs=args.epochs,
-                       path=path+"/data/", export_append=str(i),
-                       verbose=args.verbose)
+            print("="*25, format(i, "06b"), "="*25)
+            out = batch_eval(sents, grammar, particles, orthography,
+                             merges=args.merges, epochs=args.epochs,
+                             path=path+"/data/", export_append=str(i),
+                             verbose=args.verbose)
+            # Append to other results
+            prepare_export(df_temp, out)
         # Next, invert fusional option, with every marking enabled
         grammar["fusional"] = not grammar["fusional"]
         # Final evaluation with the fusional grammar
-        batch_eval(sents, grammar, particles, orthography,
-                   merges=args.merges, epochs=args.epochs,
-                   path=path+"/data/", export_append="fusional",
-                   verbose=args.verbose)
+        print("="*25, "FUSIONAL - ALL ENABLED", "="*25)
+        out = batch_eval(sents, grammar, particles, orthography,
+                         merges=args.merges, epochs=args.epochs,
+                         path=path+"/data/", export_append="fusional",
+                         verbose=args.verbose)
+        # Append to other results
+        prepare_export(df_temp, out)
+    # Export results to CSV
+    df = pd.DataFrame(df_temp)
+    df.to_csv(args.outfile, index=False)
+    print("Exported all results to", args.outfile)
 
 
 if __name__ == "__main__":
