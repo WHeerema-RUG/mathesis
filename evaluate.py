@@ -29,13 +29,13 @@ def create_args():
     return args
 
 
-def bpe_ifier(sents, merges):
+def bpe_ifier(sents, merges, vocab_outfile="none"):
     """Do BPE operations for a set of sentences"""
     # Do BPE merges and tokenization
     bpe = Encoder(merges, pct_bpe=0.9)
     bpe.fit(sents)
-    # Get vocab size
-    vocab_size = bpe.vocabs_to_dict()["kwargs"]["vocab_size"]
+    # Get vocabulary
+    vocab_dict = bpe.vocabs_to_dict()
     # Get tokenized sentences for Shannon entropy measure
     returnable = [next(bpe.transform([sent])) for sent in sents]
     # Get frequency for all types in every sentence
@@ -45,8 +45,12 @@ def bpe_ifier(sents, merges):
     # Do entropy measure
     entropy_no = entropy(prob_array)
     print("Shannon entropy:", entropy_no)
+    # Save vocabulary to output file if specified
+    if vocab_outfile != "none":
+        with open(vocab_outfile, "w") as f1:
+            f1.write("\n".join(vocab_dict["byte_pairs"]))
     # Return tokenized sentences and entropy
-    return returnable, vocab_size, entropy_no
+    return returnable, vocab_dict["kwargs"]["vocab_size"], entropy_no
 
 
 def main(args):

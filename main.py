@@ -1,8 +1,7 @@
 # MAIN PROGRAM
 # For the Master's thesis project
 # Does a batch generation and evaluation of every language.
-# Assumes proto-sentences, lexicon and feature occurrences are already
-# generated.
+# Assumes proto-sentences and lexicon are already generated.
 # Author: Wessel Heerema
 # Date: 11/03/2025
 
@@ -62,8 +61,10 @@ def batch_eval(sents, grammar, particles, orthography,
     # Output to text file for control
     with open(path + "parse-" + export_append + ".txt", "w") as fo:
         fo.write("\n".join(parsed))
-    # Calculate BPE
-    sents_tok, vocab, entropy = eval.bpe_ifier(parsed, merges)
+    # Calculate BPE and save vocabulary
+    bpe_out = path + "bpe-" + export_append + ".txt"
+    sents_tok, vocab, entropy = eval.bpe_ifier(parsed, merges,
+                                               bpe_out)
     # Train transformer
     loss, perplexity = eval.transformer_ops(sents_tok, vocab, epochs,
                                             verbose=verbose)
