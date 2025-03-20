@@ -75,8 +75,13 @@ def render_sent(protosent, grammar, particles, orthography):
                                        for valid in marked])
         # Respell and add to sentence
         outsent.append(ortho_transform(word, orthography))
-    # Return capitalized sentence with a period at the end
-    return " ".join(outsent).capitalize() + "."
+    # Check orthography for mixed case
+    if re.search("[A-Z]", "".join(orthography.values())):
+        # If so, don't capitalize it, but do use a period
+        return " ".join(outsent) + "."
+    else:
+        # Else return capitalized sentence with a period at the end
+        return " ".join(outsent).capitalize() + "."
 
 
 def main(args):
