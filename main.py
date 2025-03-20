@@ -13,6 +13,7 @@ import os
 import sys
 
 # Import custom modules
+from sennrich_etal import bpe_alg1
 from sentences import renderer as ren
 import evaluate as eval
 
@@ -63,10 +64,10 @@ def batch_eval(sents, grammar, particles, orthography,
         fo.write("\n".join(parsed))
     # Calculate BPE and save vocabulary
     bpe_out = path + "bpe-" + export_append + ".txt"
-    sents_tok, vocab, entropy = eval.bpe_ifier(parsed, merges,
-                                               bpe_out)
+    sents_tok, vocab = bpe_alg1(parsed, merges)
+    entropy = eval.evaluate_bpe(sents_tok, vocab.keys(), bpe_out)
     # Train transformer
-    loss, perplexity = eval.transformer_ops(sents_tok, vocab, epochs,
+    loss, perplexity = eval.transformer_ops(sents_tok, len(vocab), epochs,
                                             verbose=verbose)
     return {"ID": export_append, "Entropy": entropy, "Loss": loss,
             "Perplexity": perplexity}
@@ -149,11 +150,14 @@ def main(args):
             prepare_export(df_temp, out)
         # Next, invert fusional option, with every marking enabled
         grammar["fusional"] = not grammar["fusional"]
-        # Final evaluation with the fusional grammar
-        print("="*25, "FUSIONAL - ALL ENABLED", "="*25)
+        if grammar["fusional"]:
+            print("="*25, "FUSIONAL - ALL ENABLED", "="*25)
+        else:
+            print("="*25, "AGGLUTINATIVE - ALL ENABLED", "="*25)
+        # Final evaluation with the inverted grammar
         out = batch_eval(sents, grammar, particles, orthography,
                          merges=args.merges, epochs=args.epochs,
-                         path=path+"/data/", export_append="fusional",
+                         path=path+"/data/", export_append="fusinv",
                          verbose=args.verbose)
         # Append to other results
         prepare_export(df_temp, out)

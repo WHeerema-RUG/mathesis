@@ -100,7 +100,7 @@ def main(args):
     else:
         outpath = args.outfile
     with open(outpath, "w") as fo:
-        fo.write("\n".join(parsed))
+        fo.write("\n".join(parsed)+"\n")
     print("Exported sentences to", outpath)
 
 
