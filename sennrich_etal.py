@@ -50,9 +50,9 @@ def bpe_alg1(sents, merges):
     print(vocab_ordered)
     bpe_tokenizer = MWETokenizer([tuple(word) for word in vocab_ordered],
                                  separator="")
-    # All lowercase, replace non-words with EOW markers, tokenize
-    tok_sents = [bpe_tokenizer.tokenize(list(re.sub("\W+", "#", line)\
-                                             .lower())) for line in sents]
+    # Replace non-words with EOW markers, tokenize
+    tok_sents = [bpe_tokenizer.tokenize(list(re.sub("\W+", "#", line)))
+                 for line in sents]
     # Turn into BPE IDs
     vocab_indices = {bp: vocab_ordered.index(bp) for bp in vocab_ordered}
     id_sents = [[vocab_indices[sub] for sub in sent] for sent in tok_sents]
