@@ -68,7 +68,6 @@ def main(args):
     if args.sennrich:
         from sennrich_etal import bpe_alg1
         sents_tok, vocab = bpe_alg1(sents_raw, args.merges)
-        print(sents_tok)
         # Calculate entropy
         evaluate_bpe(sents_tok, vocab.keys())
         transformer_ops(sents_tok, len(vocab), args.epochs)

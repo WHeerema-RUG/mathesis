@@ -33,13 +33,15 @@ def bpe_alg1(sents, merges):
     """Performs merges and tokenizes the text"""
     # Convert vocabulary to mergeable format (mine)
     # EOW = #
-    vocab_counter = Counter([token.lower()+"#" for token
+    vocab_counter = Counter([token + "#" for token
                              in re.findall("\w+", " ".join(sents))])
     vocab = {" ".join(list(key)): value
              for key, value in vocab_counter.items()}
     # Do merges (from paper)
     for _ in range(merges):
         pairs = get_stats(vocab)
+        if not pairs:
+            raise ValueError("Too many merges specified")
         best = max(pairs, key=pairs.get)
         vocab = merge_vocab(best, vocab)
     # Tokenize text (mine)
@@ -47,7 +49,6 @@ def bpe_alg1(sents, merges):
     vocab_ordered = sorted(set(chain.from_iterable([merged.split() for merged
                                                     in vocab.keys()])),
                            key=len, reverse=True)
-    print(vocab_ordered)
     bpe_tokenizer = MWETokenizer([tuple(word) for word in vocab_ordered],
                                  separator="")
     # Replace non-words with EOW markers, tokenize
