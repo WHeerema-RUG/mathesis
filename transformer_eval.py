@@ -41,7 +41,7 @@ def prepare_data(tokenized, pad_token=0):
 
 def build_transformer(vocab_size, embed_dim=128, num_heads=4, num_layers=3,
                       dropout=0.1):
-    """Creates a basic transformer and send it to the device
+    """Creates a basic transformer and sendS it to the device
     Parameters are a derivative of Vaswani et al. (2017), with 50% of head no.
     and layer count and 25% of embed dimension, as to handle a smaller dataset
     FF dimension calculated the same way as in Vaswani et al. (2017)
@@ -127,8 +127,6 @@ def transformer_ops(tokenized, vocab, epochs, verbose=True,
     if return_vals not in ["train", "val", "test"]:
         raise ValueError("""Specify one of ["train", "val", "test"]\
 for returning""")
-    elif return_vals == "test":
-        return NotImplementedError("No test set implemented yet")
     # Preprocess data to get mask and padded dataset
     pad_token = 0
     data, attn_masks = prepare_data(tokenized, pad_token)
