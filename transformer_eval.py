@@ -11,12 +11,12 @@ import torch
 from torch.nn import Embedding, Parameter, Linear, \
     TransformerEncoder, TransformerEncoderLayer, CrossEntropyLoss
 from torch.optim import Adam
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, TensorDataset, random_split
 import numpy as np
 from tqdm import tqdm
 
-# Set to CPU; efficient model is not necessary
-device = torch.device("cpu")
+# Set device
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def prepare_data(tokenized, pad_token=0):
@@ -39,15 +39,19 @@ def prepare_data(tokenized, pad_token=0):
     return torch.tensor(padded_data), torch.tensor(attn_masks)
 
 
-def build_transformer(vocab_size, embed_dim=128, num_heads=4, num_layers=2,
-                      ff_dim=256, dropout=0.1):
-    """Creates a basic transformer and send it to the device"""
+def build_transformer(vocab_size, embed_dim=128, num_heads=4, num_layers=3,
+                      dropout=0.1):
+    """Creates a basic transformer and send it to the device
+    Parameters are a derivative of Vaswani et al. (2017), with 50% of head no.
+    and layer count and 25% of embed dimension, as to handle a smaller dataset
+    FF dimension calculated the same way as in Vaswani et al. (2017)
+    """
     # Create embeddings
     embedding = Embedding(vocab_size, embed_dim, padding_idx=0).to(device)
     pos_embedding = Parameter(torch.randn(1, 512, embed_dim)).to(device)
     # Create transformer itself
     transformer = TransformerEncoder(
-        TransformerEncoderLayer(embed_dim, num_heads, ff_dim, dropout),
+        TransformerEncoderLayer(embed_dim, num_heads, 4 * embed_dim, dropout),
         num_layers
     ).to(device)
     # Apply linear transformation for probabilities
@@ -92,13 +96,50 @@ def train_epoch(dataloader, optimizer, criterion, embedding,
     return total_loss / len(dataloader)
 
 
-def transformer_ops(tokenized, vocab, epochs, verbose=True):
+def eval_epoch(dataloader, criterion, embedding, pos_embedding,
+               transformer, fc_out):
+    """Makes predictions for the dataloader, returns loss
+    Similar to train_epoch, but without optimizer or gradient calculation
+    """
+    # Initialize loss
+    total_loss = 0
+    # Ensures no training is done
+    with torch.no_grad():
+        # Iterate over each batch
+        for batch, attn_mask in dataloader:
+            # Send data to device
+            batch, attn_mask = batch.to(device), attn_mask.to(device)
+            # Make prediction
+            output = forward(batch[:, :-1], attn_mask[:, :-1], embedding,
+                             pos_embedding, transformer, fc_out)
+            # Calculate loss for batch and add to total epoch loss
+            loss = criterion(output.reshape(-1, output.size(-1)),
+                             batch[:, 1:].reshape(-1))
+            total_loss += loss.item()
+    # Return that epoch's loss
+    return total_loss / len(dataloader)
+
+
+def transformer_ops(tokenized, vocab, epochs, verbose=True,
+                    ratio=[0.8, 0.1, 0.1], return_vals="train"):
     """Perform every operation for creating and evaluating a transformer"""
+    # Sanity check
+    if return_vals not in ["train", "val", "test"]:
+        raise ValueError("""Specify one of ["train", "val", "test"]\
+for returning""")
+    elif return_vals == "test":
+        return NotImplementedError("No test set implemented yet")
     # Preprocess data to get mask and padded dataset
     pad_token = 0
     data, attn_masks = prepare_data(tokenized, pad_token)
     dataset = TensorDataset(data, attn_masks)
-    dataloader = DataLoader(dataset, batch_size=16)
+    # Do the train/val/test split
+    train_sub, val_sub, test_sub = random_split(dataset,
+                                                [int(dec * len(dataset))
+                                                 for dec in ratio])
+    train_loader = DataLoader(train_sub, batch_size=16, shuffle=True)
+    val_loader = DataLoader(val_sub, batch_size=16, shuffle=True)
+    test_loader = DataLoader(test_sub, batch_size=16, shuffle=True)
     # Get every component of the transformer
     embedding, pos_embedding, transformer, fc_out = build_transformer(vocab)
     optimizer = Adam(list(embedding.parameters()) +
@@ -112,13 +153,36 @@ def transformer_ops(tokenized, vocab, epochs, verbose=True):
         # The 25 * "=" is just to prettify the output
         print(25 * "=")
     for epoch in range(epochs):
-        train_loss = train_epoch(dataloader, optimizer, criterion, embedding,
-                                 pos_embedding, transformer, fc_out)
-        perplexity = np.exp(train_loss)
+        # Training
+        train_loss = train_epoch(train_loader, optimizer, criterion,
+                                 embedding, pos_embedding, transformer,
+                                 fc_out)
+        train_perplexity = np.exp(train_loss)
+        # Validation
+        val_loss = eval_epoch(val_loader, criterion, embedding, pos_embedding,
+                              transformer, fc_out)
+        val_perplexity = np.exp(val_loss)
+        # Print out every value
         if verbose:
             print("EPOCH", epoch, "\nTrain Loss:", train_loss,
-                  "\nPerplexity:", perplexity, "\n" + 25 * "=")
+                  "\nTrain Perplexity:", train_perplexity,
+                  "\nVal. Loss:", val_loss,
+                  "\nVal. Perplexity:", val_perplexity,
+                  "\n" + 25 * "=")
     if not verbose:
         print("\nTrain Loss:", train_loss,
-              "\nPerplexity:", perplexity)
-    return train_loss, perplexity
+              "\nPerplexity:", train_perplexity,
+              "\nVal. Loss:", val_loss,
+              "\nVal. Perplexity:", val_perplexity)
+    # Do test run
+    test_loss = eval_epoch(test_loader, criterion, embedding, pos_embedding,
+                           transformer, fc_out)
+    test_perplexity = np.exp(test_loss)
+    print("Test Loss:", test_loss, "\nTest Perplexity:", test_perplexity)
+    # Return specified values
+    if return_vals == "train":
+        return train_loss, train_perplexity
+    elif return_vals == "val":
+        return val_loss, val_perplexity
+    elif return_vals == "test":
+        return test_loss, test_perplexity
