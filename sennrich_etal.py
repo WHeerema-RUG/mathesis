@@ -33,8 +33,11 @@ def bpe_alg1(sents, merges):
     """Performs merges and tokenizes the text"""
     # Convert vocabulary to mergeable format (mine)
     # EOW = #
+    # To that end, mark everything consistently
+    unified_eow = [re.sub("[ .](?! )", "#", line) for line in sents]
+    # As it removes the separator in tokenization, add it back to every token
     vocab_counter = Counter([token + "#" for token
-                             in re.findall("\w+", " ".join(sents))])
+                             in "".join(unified_eow).split("#")])
     vocab = {" ".join(list(key)): value
              for key, value in vocab_counter.items()}
     # Do merges (from paper)
@@ -51,20 +54,11 @@ def bpe_alg1(sents, merges):
                            key=len, reverse=True)
     bpe_tokenizer = MWETokenizer([tuple(word) for word in vocab_ordered],
                                  separator="")
-    # Replace non-words with EOW markers, tokenize
-    tok_sents = [bpe_tokenizer.tokenize(list(re.sub("[ .](?! )", "#", line)))
-                 for line in sents]
+    # Run BPE MWE tokenizer on the earlier sentences
+    tok_sents = [bpe_tokenizer.tokenize(list(line))
+                 for line in unified_eow]
     # Turn into BPE IDs
     vocab_indices = {bp: vocab_ordered.index(bp) for bp in vocab_ordered}
-    id_sents = []
-    for sent in tok_sents:
-        list_appendable = []
-        for sub in sent:
-            try:
-                list_appendable.append(vocab_indices[sub])
-            except KeyError:
-                vocab_indices[sub] = max(vocab_indices.values()) + 1
-                list_appendable.append(vocab_indices[sub])
-        id_sents.append(list_appendable)
+    id_sents = [[vocab_indices[sub] for sub in sent] for sent in tok_sents]
     # Return tokenized sentences and vocabulary
     return id_sents, vocab_indices
