@@ -68,7 +68,8 @@ def batch_eval(sents, grammar, particles, orthography,
     entropy = eval.evaluate_bpe(sents_tok, vocab.keys(), bpe_out)
     # Train transformer
     loss, perplexity = eval.transformer_ops(sents_tok, len(vocab), epochs,
-                                            verbose=verbose)
+                                            verbose=verbose,
+                                            return_vals="test")
     return {"ID": export_append, "Entropy": entropy, "Loss": loss,
             "Perplexity": perplexity}
 
