@@ -13,6 +13,7 @@ from torch.nn import Embedding, Parameter, Linear, \
 from torch.optim import Adam
 from torch.utils.data import DataLoader, TensorDataset, random_split
 import numpy as np
+from statistics import median
 from tqdm import tqdm
 
 # Set device
@@ -73,11 +74,11 @@ def forward(x, attn_mask, embedding, pos_embedding, transformer, fc_out):
 
 
 def train_epoch(dataloader, optimizer, criterion, embedding,
-                pos_embedding, transformer, fc_out):
+                pos_embedding, transformer, fc_out, loss_out="avg"):
     """Trains the transformer for a single epoch, in order to calculate loss
     """
     # Initialize loss
-    total_loss = 0
+    total_loss = []
     # Iterate over each batch
     for batch, attn_mask in tqdm(dataloader):
         # Send data to device
@@ -91,13 +92,21 @@ def train_epoch(dataloader, optimizer, criterion, embedding,
                          batch[:, 1:].reshape(-1))
         loss.backward()
         optimizer.step()
-        total_loss += loss.item()
+        total_loss.append(loss.item())
     # Return that epoch's loss
-    return total_loss / len(dataloader)
+    # Average
+    if loss_out == "avg":
+        return sum(total_loss) / len(loss)
+    # Median
+    elif loss_out == "median":
+        return median(total_loss)
+    # Invalid
+    else:
+        raise ValueError("Specify valid loss calculation")
 
 
 def eval_epoch(dataloader, criterion, embedding, pos_embedding,
-               transformer, fc_out):
+               transformer, fc_out, loss_out="avg"):
     """Makes predictions for the dataloader, returns loss
     Similar to train_epoch, but without optimizer or gradient calculation
     """
@@ -117,11 +126,20 @@ def eval_epoch(dataloader, criterion, embedding, pos_embedding,
                              batch[:, 1:].reshape(-1))
             total_loss += loss.item()
     # Return that epoch's loss
-    return total_loss / len(dataloader)
+    # Average
+    if loss_out == "avg":
+        return sum(total_loss) / len(loss)
+    # Median
+    elif loss_out == "median":
+        return median(total_loss)
+    # Invalid
+    else:
+        raise ValueError("Specify valid loss calculation")
 
 
 def transformer_ops(tokenized, vocab, epochs, verbose=True,
-                    ratio=[0.8, 0.1, 0.1], return_vals="train"):
+                    ratio=[0.8, 0.1, 0.1], return_vals="train",
+                    loss_out="avg"):
     """Perform every operation for creating and evaluating a transformer"""
     # Sanity check
     if return_vals not in ["train", "val", "test"]:
@@ -154,11 +172,11 @@ for returning""")
         # Training
         train_loss = train_epoch(train_loader, optimizer, criterion,
                                  embedding, pos_embedding, transformer,
-                                 fc_out)
+                                 fc_out, loss_out=loss_out)
         train_perplexity = np.exp(train_loss)
         # Validation
         val_loss = eval_epoch(val_loader, criterion, embedding, pos_embedding,
-                              transformer, fc_out)
+                              transformer, fc_out, loss_out=loss_out)
         val_perplexity = np.exp(val_loss)
         # Print out every value
         if verbose:
