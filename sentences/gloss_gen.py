@@ -21,6 +21,10 @@ def create_args():
     parser.add_argument("-n", "--sentcount", type=int, default=100,
                         help="Amount of sentences to generate"
                         "(default 100)")
+    parser.add_argument("-r", "--seed", type=int,
+                        default=0,
+                        help="Seed for all functions and runs"
+                        "(default 0 = none)")
     args = parser.parse_args()
     return args
 
@@ -61,6 +65,9 @@ def generate_gloss(lexicon, options, thres):
 
 
 def main(args):
+    # Set seed
+    if args.seed:
+        random.seed(args.seed)
     # Import all necessary files
     with open(args.lexicon, "r") as fl:
         lexicon = json.load(fl)

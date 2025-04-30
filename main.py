@@ -8,9 +8,11 @@
 # Import "proper" modules for I/O
 import argparse
 import json
+import numpy as np
 import pandas as pd
 import os
 import sys
+import torch
 
 # Import custom modules
 from sennrich_etal import bpe_alg1
@@ -48,6 +50,10 @@ def create_args():
                         default="results.csv",
                         help=".csv file to export all results to"
                         "(default results.csv)")
+    parser.add_argument("-r", "--seed", type=int,
+                        default=0,
+                        help="Seed for all functions and runs"
+                        "(default 0 = none)")
     args = parser.parse_args()
     return args
 
@@ -81,6 +87,10 @@ def prepare_export(parent, child):
 
 
 def main(args):
+    # Set seed for every component
+    if args.seed:
+        np.random.seed(args.seed)
+        torch.manual_seed(args.seed)
     # Import files
     sents, grammar, particles = ren.load_data(args.infile, args.grammar,
                                               args.lexicon)

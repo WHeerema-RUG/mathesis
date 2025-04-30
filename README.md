@@ -1,12 +1,7 @@
 # Master's Thesis - Language generation for BPE optimization in transformers
-Work in progress.
+The program is described in the Progress document for now. This README will be properly written once the program is completed.
 
-## Step 1: Lexicon Generation
-### Preliminary phonology consonant classification
-The preliminary phonology is roughly based on English consonants and Wolof short vowels.
-This is in order to create a baseline for orthographic variability.
-It is designed such that different rankings or phonemic inventories can be used later.
-* 0: voiceless obstruent
-* 1: voiced obstruent
-* 2: sonorant
-* 3: semivowel
+To reproduce the runs in the paper as closely as possible, the study uses three seeds:
+* 36
+* 2016
+* 1647

@@ -31,6 +31,10 @@ def create_args():
     parser.add_argument("-n", "--wordcount", type=int, default=100,
                         help="Amount of content words to generate"
                         "(default 100)")
+    parser.add_argument("-r", "--seed", type=int,
+                        default=0,
+                        help="Seed for all functions and runs"
+                        "(default 0 = none)")
     args = parser.parse_args()
     return args
 
@@ -217,6 +221,9 @@ def generate_lexicon(phonology, feats, count, particles):
 
 
 def main(args):
+    # Set seed
+    if args.seed:
+        random.seed(args.seed)
     # Load or generate feature occurrences
     if args.featimport != "none":
         # If provided, load it instead of generating
