@@ -164,6 +164,9 @@ for returning""")
     # Set cross-entropy as the loss criterion
     criterion = CrossEntropyLoss(ignore_index=pad_token)
     # Iterate to get loss; print as both loss and perplexity
+    # Initialize array of validation perplexity scores if specified as mixed
+    if return_vals == "mixed":
+        per_epoch = []
     # Only print every epoch if verbose; else, only print last epoch result
     if verbose:
         # The 25 * "=" is just to prettify the output
@@ -185,6 +188,8 @@ for returning""")
                   "\nVal. Loss:", val_loss,
                   "\nVal. Perplexity:", val_perplexity,
                   "\n" + 25 * "=")
+            if return_vals == "mixed":
+                per_epoch.append((train_perplexity, val_perplexity))
     if not verbose:
         print("\nTrain Loss:", train_loss,
               "\nPerplexity:", train_perplexity,
@@ -202,3 +207,5 @@ for returning""")
         return val_loss, val_perplexity
     elif return_vals == "test":
         return test_loss, test_perplexity
+    elif return_vals == "mixed":
+        return per_epoch, test_perplexity

@@ -54,13 +54,15 @@ def create_args():
                         default=0,
                         help="Seed for all functions and runs"
                         "(default 0 = none)")
+    parser.add_argument("-a", "--allperplexity", action="store_true",
+                        help="Store all perplexity results in results file")
     args = parser.parse_args()
     return args
 
 
 def batch_eval(sents, grammar, particles, orthography,
                merges, epochs, path, export_append,
-               verbose=False):
+               verbose=False, return_vals="test"):
     """Do a batch evaluation on the whole set"""
     # Render every sentence
     parsed = [ren.render_sent(sent, grammar, particles, orthography)
@@ -75,15 +77,27 @@ def batch_eval(sents, grammar, particles, orthography,
     # Train transformer
     loss, perplexity = eval.transformer_ops(sents_tok, len(vocab), epochs,
                                             verbose=verbose,
-                                            return_vals="test")
-    return {"ID": export_append, "Entropy": entropy, "Loss": loss,
-            "Perplexity": perplexity}
+                                            return_vals=return_vals)
+    if isinstance(loss, list):
+        # If local "loss" is a list, that means it has "mixed" return_vals,
+        # i.e. it reports both training and validation perplexity
+        return {"ID": export_append, "Entropy": entropy, "Per Epoch": loss,
+                "Test": perplexity}
+    else:
+        return {"ID": export_append, "Entropy": entropy, "Loss": loss,
+                "Perplexity": perplexity}
 
 
 def prepare_export(parent, child):
     """Process child dict for parent dict export"""
     for key, value in child.items():
-        parent[key].append(value)
+        if key == "Per Epoch":
+            # If Per Epoch key found, then it uses "mixed"; handle accordingly
+            for i, score in enumerate(value):
+                parent["Train-" + str(i)].append(score[0])
+                parent["Val-" + str(i)].append(score[1])
+        else:
+            parent[key].append(value)
 
 
 def main(args):
@@ -104,7 +118,17 @@ def main(args):
         os.mkdir(path+"/data")
     except FileExistsError:
         pass
-    df_temp = {"ID": [], "Entropy": [], "Loss": [], "Perplexity": []}
+    # Determine output type
+    if args.allperplexity:
+        return_vals = "mixed"
+        df_temp = {"ID": [], "Entropy": [], "Test": []}
+        # Add columns for training and validation scores
+        df_temp.update({"Train-" + str(epoch): [] for epoch in args.epochs})
+        df_temp.update({"Val-" + str(epoch): [] for epoch in args.epochs})
+    else:
+        return_vals = "test"
+        df_temp = {"ID": [], "Entropy": [], "Loss": [], "Perplexity": []}
+    # RUN !!!!!
     if args.orthography == "empty":
         # If no orthography specified, do an orthography run
         orths = ["none"]
@@ -130,7 +154,7 @@ def main(args):
             out = batch_eval(sents, grammar, particles, orthography,
                              merges=args.merges, epochs=args.epochs,
                              path=path+"/data/", export_append=export_append,
-                             verbose=args.verbose)
+                             verbose=args.verbose, return_vals=return_vals)
             # Append to other results
             prepare_export(df_temp, out)
     else:
@@ -156,7 +180,7 @@ def main(args):
             out = batch_eval(sents, grammar, particles, orthography,
                              merges=args.merges, epochs=args.epochs,
                              path=path+"/data/", export_append=str(i),
-                             verbose=args.verbose)
+                             verbose=args.verbose, return_vals=return_vals)
             # Append to other results
             prepare_export(df_temp, out)
         # Next, invert fusional option, with every marking enabled
