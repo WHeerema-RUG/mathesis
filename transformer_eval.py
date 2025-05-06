@@ -96,7 +96,7 @@ def train_epoch(dataloader, optimizer, criterion, embedding,
     # Return that epoch's loss
     # Average
     if loss_out == "avg":
-        return sum(total_loss) / len(loss)
+        return sum(total_loss) / len(total_loss)
     # Median
     elif loss_out == "median":
         return median(total_loss)
@@ -128,7 +128,7 @@ def eval_epoch(dataloader, criterion, embedding, pos_embedding,
     # Return that epoch's loss
     # Average
     if loss_out == "avg":
-        return sum(total_loss) / len(loss)
+        return sum(total_loss) / len(total_loss)
     # Median
     elif loss_out == "median":
         return median(total_loss)
