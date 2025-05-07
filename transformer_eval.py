@@ -111,7 +111,7 @@ def eval_epoch(dataloader, criterion, embedding, pos_embedding,
     Similar to train_epoch, but without optimizer or gradient calculation
     """
     # Initialize loss
-    total_loss = 0
+    total_loss = []
     # Ensures no training is done
     with torch.no_grad():
         # Iterate over each batch
@@ -124,7 +124,7 @@ def eval_epoch(dataloader, criterion, embedding, pos_embedding,
             # Calculate loss for batch and add to total epoch loss
             loss = criterion(output.reshape(-1, output.size(-1)),
                              batch[:, 1:].reshape(-1))
-            total_loss += loss.item()
+            total_loss.append(loss.item())
     # Return that epoch's loss
     # Average
     if loss_out == "avg":

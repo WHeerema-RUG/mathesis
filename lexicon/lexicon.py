@@ -193,7 +193,16 @@ def generate_lexicon(phonology, feats, count, particles):
     lexicon = {"grammar": {}, "noun": [], "verb": {}}
     # First the grammar
     for particle in particles:
-        morpheme = generate_syllable(onsets, nuclei, codas, tact="CV")
+        original = False
+        # Check if morpheme does not already exist in grammar
+        # For the sake of "better safe than sorry", try a max of five times
+        for _ in range(5):
+            morpheme = generate_syllable(onsets, nuclei, codas, tact="CV")
+            if morpheme not in lexicon["grammar"].keys():
+                original = True
+                break
+        if not original:
+            raise ValueError("Bad seed; try another")
         lexicon["grammar"][morpheme] = particle
     # Fusional morpheme generation as well
     # Example fusional description: definite&singular
