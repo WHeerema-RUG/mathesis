@@ -123,8 +123,10 @@ def main(args):
         return_vals = "mixed"
         df_temp = {"ID": [], "Entropy": [], "Test": []}
         # Add columns for training and validation scores
-        df_temp.update({"Train-" + str(epoch): [] for epoch in args.epochs})
-        df_temp.update({"Val-" + str(epoch): [] for epoch in args.epochs})
+        df_temp.update({"Train-" + str(epoch): []
+                        for epoch in range(args.epochs)})
+        df_temp.update({"Val-" + str(epoch): []
+                        for epoch in range(args.epochs)})
     else:
         return_vals = "test"
         df_temp = {"ID": [], "Entropy": [], "Loss": [], "Perplexity": []}
@@ -193,7 +195,7 @@ def main(args):
         out = batch_eval(sents, grammar, particles, orthography,
                          merges=args.merges, epochs=args.epochs,
                          path=path+"/data/", export_append="fusinv",
-                         verbose=args.verbose)
+                         verbose=args.verbose, return_vals=return_vals)
         # Append to other results
         prepare_export(df_temp, out)
     # Export results to CSV

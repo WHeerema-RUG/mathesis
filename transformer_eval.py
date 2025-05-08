@@ -142,8 +142,8 @@ def transformer_ops(tokenized, vocab, epochs, verbose=True,
                     loss_out="avg"):
     """Perform every operation for creating and evaluating a transformer"""
     # Sanity check
-    if return_vals not in ["train", "val", "test"]:
-        raise ValueError("""Specify one of ["train", "val", "test"]\
+    if return_vals not in ["train", "val", "test", "mixed"]:
+        raise ValueError("""Specify one of ["train", "val", "test", "mixed"] \
 for returning""")
     # Preprocess data to get mask and padded dataset
     pad_token = 0
