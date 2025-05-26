@@ -100,6 +100,9 @@ def train_epoch(dataloader, optimizer, criterion, embedding,
     # Median
     elif loss_out == "median":
         return median(total_loss)
+    # Only the last loss calculation
+    elif loss_out == "last":
+        return total_loss[-1]
     # Invalid
     else:
         raise ValueError("Specify valid loss calculation")
@@ -132,6 +135,9 @@ def eval_epoch(dataloader, criterion, embedding, pos_embedding,
     # Median
     elif loss_out == "median":
         return median(total_loss)
+    # Only the last loss calculation
+    elif loss_out == "last":
+        return total_loss[-1]
     # Invalid
     else:
         raise ValueError("Specify valid loss calculation")

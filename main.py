@@ -77,7 +77,8 @@ def batch_eval(sents, grammar, particles, orthography,
     # Train transformer
     loss, perplexity = eval.transformer_ops(sents_tok, len(vocab), epochs,
                                             verbose=verbose,
-                                            return_vals=return_vals)
+                                            return_vals=return_vals,
+                                            loss_out="last")
     if isinstance(loss, list):
         # If local "loss" is a list, that means it has "mixed" return_vals,
         # i.e. it reports both training and validation perplexity
